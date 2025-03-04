@@ -1,8 +1,7 @@
 from fastapi import APIRouter, HTTPException
-import requests
 import pandas as pd
 from config.config import Config
-from utils.api_handler import get_api_key, make_api_request
+from utils.api_handler import get_api_key, make_serpapi_request, make_api_request
 from utils.logger import logger
 from utils.rate_limiter import rate_limit
 
@@ -12,18 +11,25 @@ router = APIRouter(prefix="/products", tags=["product_discovery"])
 @rate_limit(max_calls=10, time_frame=60)  # Limit to 10 calls per minute
 async def discover_products():
     try:
-        google_trends_api_key = get_api_key("google_trends")
-        amazon_api_key = get_api_key("amazon")
-        ebay_api_key = get_api_key("ebay")
-        tiktok_api_key = get_api_key("tiktok")
+        # Use SerpApi for trending keywords (example for Google Trends-like data)
+        params = {
+            "engine": "google_trends",  # Use Google Trends engine
+            "q": "electronics,clothing",  # Example keywords
+            "geo": "US",  # US market, adjust as needed
+            "timeframe": "today 12-m"  # Last 12 months, adjust as needed
+        }
+        serpapi_data = make_serpapi_request("search", params=params)
+        logger.info("Fetched SerpApi trend data")
 
-        # Fetch Google Trends data
-        trends_url = f"https://trends.google.com/trends/api/explore?hl=en-US&tz=420&req=%7B%22comparisonItem%22:%5B%7B%22keyword%22:%22electronics%22%7D,%7B%22keyword%22:%22clothing%22%7D%5D%7D"
-        trends_headers = {"Authorization": f"Bearer {google_trends_api_key}"}
-        trends_data = make_api_request(trends_url, headers=trends_headers)
-        logger.info("Fetched Google Trends data")
+        # Parse SerpApi data into a DataFrame (simplified, adjust based on actual response)
+        products = []
+        for item in serpapi_data.get("trends", {}).get("items", []):  # Adjust based on SerpApi response structure
+            products.append({
+                "product": item.get("query", "Unknown Product"),  # Use query or title as product name
+                "price": estimate_price(item.get("volume", 0))  # Estimate price based on search volume
+            })
 
-        # Mock Amazon, eBay, TikTok Shop data (replace with real APIs)
+        # Mock Amazon, eBay data (replace with real APIs)
         amazon_data = pd.DataFrame({
             "product": ["Smartphone", "Laptop", "Sneakers"],
             "price": [500, 1000, 100]
@@ -32,13 +38,9 @@ async def discover_products():
             "product": ["Smartphone", "Headphones", "Watch"],
             "price": [450, 50, 200]
         })
-        tiktok_data = pd.DataFrame({
-            "product": ["T-Shirt", "Backpack", "Shoes"],
-            "price": [20, 80, 60]
-        })
 
         # Combine and rank products by price (lowest to highest)
-        all_products = pd.concat([amazon_data, ebay_data, tiktok_data])
+        all_products = pd.concat([pd.DataFrame(products), amazon_data, ebay_data])
         top_products = all_products.sort_values(by="price").head(10).to_dict(orient="records")
 
         logger.info(f"Discovered {len(top_products)} trending products")
@@ -50,3 +52,13 @@ async def discover_products():
     except Exception as e:
         logger.error(f"Unexpected error in product discovery: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+def estimate_price(search_volume):
+    """Estimate a price based on search volume (simplified placeholder)."""
+    # This is a placeholder; adjust based on your business logic or SerpApi metrics
+    if search_volume > 100000:
+        return 1000  # High-demand product
+    elif search_volume > 10000:
+        return 500
+    else:
+        return 100

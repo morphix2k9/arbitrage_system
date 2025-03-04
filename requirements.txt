@@ -8,4 +8,6 @@
         facebook-business==18.0.0
         twilio==8.10.0
         python-dotenv==1.0.0
-        
+       
+        # requirements.txt (add if needed)
+        semrush-python==<version>  # Check Semrush for an official SDK, if available
