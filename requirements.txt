@@ -10,4 +10,4 @@
         python-dotenv==1.0.0
        
         # requirements.txt (add if needed)
-        semrush  # Check Semrush for an official SDK, if available
+        python-semrush  # Check Semrush for an official SDK, if available
