@@ -15,7 +15,7 @@ An AI-driven, fully automated arbitrage system using FastAPI, Python, Vercel, an
    - `git clone https://github.com/your-username/arbitrage_system.git`
    - `cd arbitrage_system`
 
-2. **Install Dependencies**:
+2. **Install Dependencies - Set for Deploy**:
    - Ensure Python 3.9+ is installed.
    - Create a virtual environment:
      ```bash
